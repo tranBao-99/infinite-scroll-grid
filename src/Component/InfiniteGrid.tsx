@@ -1,9 +1,10 @@
 import { useRef, useEffect, useState } from "react";
+import Image from "next/image";
 import styles from "./InfiniteGrid.module.scss";
 
-const CELL_WIDTH = 600;
-const CELL_HEIGHT = 500;
-const GAP = 20; // Khoảng cách giữa các ảnh
+const CELL_WIDTH = 400;
+const CELL_HEIGHT = 300;
+const GAP = 50; // Khoảng cách giữa các ảnh
 const VIRTUAL_SIZE = 100; // 100x100 virtual grid
 const BUFFER = 2; // Extra tiles to render outside viewport
 
@@ -139,12 +140,16 @@ export default function InfiniteGrid() {
               top: `${tile.top}px`,
               width: `${CELL_WIDTH}px`,
               height: `${CELL_HEIGHT}px`,
+              position: "absolute",
             }}
           >
-            <img 
-              src={tile.img} 
+            <Image
+              src={tile.img}
               alt={`Tile ${tile.key}`}
+              width={CELL_WIDTH}
+              height={CELL_HEIGHT}
               loading="lazy"
+              style={{ objectFit: "cover" }}
             />
           </div>
         ))}
