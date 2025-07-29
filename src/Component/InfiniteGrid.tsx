@@ -14,6 +14,11 @@ export default function InfiniteGrid() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollPos, setScrollPos] = useState({ x: 0, y: 0 });
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  
+  // Drag to scroll state
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [scrollStart, setScrollStart] = useState({ x: 0, y: 0 });
 
   // Initialize scroll position to center
   useEffect(() => {
@@ -44,6 +49,56 @@ export default function InfiniteGrid() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Drag to scroll handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!containerRef.current) return;
+    
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX,
+      y: e.clientY
+    });
+    setScrollStart({
+      x: containerRef.current.scrollLeft,
+      y: containerRef.current.scrollTop
+    });
+
+    // Prevent text selection and image dragging
+    e.preventDefault();
+    document.body.style.userSelect = 'none';
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging || !containerRef.current) return;
+
+    const deltaX = e.clientX - dragStart.x;
+    const deltaY = e.clientY - dragStart.y;
+
+    containerRef.current.scrollLeft = scrollStart.x - deltaX;
+    containerRef.current.scrollTop = scrollStart.y - deltaY;
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    document.body.style.userSelect = '';
+  };
+
+  // Global mouse event listeners for drag
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('mouseleave', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mouseleave', handleMouseUp);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDragging, dragStart, scrollStart]);
 
   const onScroll = () => {
     if (!containerRef.current) return;
@@ -122,7 +177,12 @@ export default function InfiniteGrid() {
     <div 
       ref={containerRef} 
       onScroll={onScroll}
+      onMouseDown={handleMouseDown}
       className={styles.wrapper}
+      style={{
+        cursor: isDragging ? 'grabbing' : 'grab',
+        userSelect: 'none'
+      }}
     >
       <div
         className={styles.grid}
@@ -141,6 +201,7 @@ export default function InfiniteGrid() {
               width: `${CELL_WIDTH}px`,
               height: `${CELL_HEIGHT}px`,
               position: "absolute",
+              pointerEvents: isDragging ? 'none' : 'auto', // Prevent image drag during scroll drag
             }}
           >
             <Image
@@ -149,7 +210,12 @@ export default function InfiniteGrid() {
               width={CELL_WIDTH}
               height={CELL_HEIGHT}
               loading="lazy"
-              style={{ objectFit: "cover" }}
+              style={{ 
+                objectFit: "cover",
+                userSelect: 'none',
+                pointerEvents: 'none' // Prevent image drag
+              }}
+              draggable={false} // Prevent image dragging
             />
           </div>
         ))}
@@ -172,6 +238,7 @@ export default function InfiniteGrid() {
         <div>Scroll: ({Math.round(scrollPos.x)}, {Math.round(scrollPos.y)})</div>
         <div>Visible tiles: {visibleTiles.length}</div>
         <div>Container: {containerSize.width}×{containerSize.height}</div>
+        <div>Dragging: {isDragging ? 'Yes' : 'No'}</div>
       </div> */}
     </div>
   );
