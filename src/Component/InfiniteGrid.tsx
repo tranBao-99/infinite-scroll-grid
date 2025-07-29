@@ -2,20 +2,20 @@ import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import styles from "./InfiniteGrid.module.scss";
 
-const CELL_WIDTH = 400;
+const CELL_WIDTH = 500;
 const CELL_HEIGHT = 300;
 const GAP = 50; // Khoảng cách giữa các ảnh
-const VIRTUAL_SIZE = 100; // 100x100 virtual grid
+const VIRTUAL_SIZE = 200; // 100x100 virtual grid
 const BUFFER = 2; // Extra tiles to render outside viewport
 
-const images = Array.from({ length: 30}, (_, i) => `https://picsum.photos/seed/${i}/600/400`);
+const images = Array.from({ length: 40}, (_, i) => `https://picsum.photos/id/${i}/600/400`);
 
 export default function InfiniteGrid() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollPos, setScrollPos] = useState({ x: 0, y: 0 });
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   
-  // Drag to scroll state
+  // Drag to scroll state (works for both mouse and touch)
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [scrollStart, setScrollStart] = useState({ x: 0, y: 0 });
@@ -50,7 +50,15 @@ export default function InfiniteGrid() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Drag to scroll handlers
+  // Get coordinates from mouse or touch event
+  const getEventCoordinates = (e: MouseEvent | TouchEvent) => {
+    if ('touches' in e && e.touches.length > 0) {
+      return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    return { x: (e as MouseEvent).clientX, y: (e as MouseEvent).clientY };
+  };
+
+  // Mouse down handler
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!containerRef.current) return;
     
@@ -69,33 +77,70 @@ export default function InfiniteGrid() {
     document.body.style.userSelect = 'none';
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  // Touch start handler
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!containerRef.current || e.touches.length !== 1) return;
+    
+    const touch = e.touches[0];
+    setIsDragging(true);
+    setDragStart({
+      x: touch.clientX,
+      y: touch.clientY
+    });
+    setScrollStart({
+      x: containerRef.current.scrollLeft,
+      y: containerRef.current.scrollTop
+    });
+
+    // Prevent default touch behavior
+    e.preventDefault();
+  };
+
+  // Unified move handler for both mouse and touch
+  const handleMove = (e: MouseEvent | TouchEvent) => {
     if (!isDragging || !containerRef.current) return;
 
-    const deltaX = e.clientX - dragStart.x;
-    const deltaY = e.clientY - dragStart.y;
+    const coords = getEventCoordinates(e);
+    const deltaX = coords.x - dragStart.x;
+    const deltaY = coords.y - dragStart.y;
 
     containerRef.current.scrollLeft = scrollStart.x - deltaX;
     containerRef.current.scrollTop = scrollStart.y - deltaY;
+
+    // Prevent default to avoid scrolling the page on mobile
+    e.preventDefault();
   };
 
-  const handleMouseUp = () => {
+  // End drag handler
+  const handleEnd = () => {
     setIsDragging(false);
     document.body.style.userSelect = '';
   };
 
-  // Global mouse event listeners for drag
+  // Global event listeners for drag (mouse and touch)
   useEffect(() => {
     if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('mouseleave', handleMouseUp);
+      // Mouse events
+      document.addEventListener('mousemove', handleMove);
+      document.addEventListener('mouseup', handleEnd);
+      document.addEventListener('mouseleave', handleEnd);
+      
+      // Touch events
+      document.addEventListener('touchmove', handleMove, { passive: false });
+      document.addEventListener('touchend', handleEnd);
+      document.addEventListener('touchcancel', handleEnd);
     }
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('mouseleave', handleMouseUp);
+      // Cleanup mouse events
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('mouseleave', handleEnd);
+      
+      // Cleanup touch events
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('touchend', handleEnd);
+      document.removeEventListener('touchcancel', handleEnd);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDragging, dragStart, scrollStart]);
@@ -163,7 +208,7 @@ export default function InfiniteGrid() {
           row,
           col,
           img,
-          left: col * cellTotalWidth,
+         left: col * cellTotalWidth + (row % 2 === 0 ? 0 : cellTotalWidth / 2),
           top: row * cellTotalHeight,
         });
       }
@@ -178,16 +223,19 @@ export default function InfiniteGrid() {
       ref={containerRef} 
       onScroll={onScroll}
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
       className={styles.wrapper}
       style={{
         cursor: isDragging ? 'grabbing' : 'grab',
-        userSelect: 'none'
+        userSelect: 'none',
+        touchAction: 'none', // Prevent default touch behaviors
+        WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
       }}
     >
       <div
         className={styles.grid}
         style={{ 
-          width: (CELL_WIDTH + GAP) * VIRTUAL_SIZE - GAP, 
+          width: (CELL_WIDTH + GAP) * VIRTUAL_SIZE - GAP + (CELL_WIDTH + GAP) / 2,
           height: (CELL_HEIGHT + GAP) * VIRTUAL_SIZE - GAP
         }}
       >

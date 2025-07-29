@@ -1,5 +1,7 @@
 .wrapper {
-  overflow: scroll;
+  overflow: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
   position: relative;
   width: 100vw;
   height: 100vh;
