@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import styles from "./InfiniteGrid.module.scss";
 
@@ -8,7 +8,7 @@ const GAP = 50; // Khoảng cách giữa các ảnh
 const VIRTUAL_SIZE = 200; // 100x100 virtual grid
 const BUFFER = 2; // Extra tiles to render outside viewport
 
-const images = Array.from({ length: 40}, (_, i) => `https://picsum.photos/id/${i}/600/400`);
+const images = Array.from({ length: 40}, (_, i) => `https://picsum.photos/id/${i + (Math.floor(Math.random() * 10) + 1)}/600/400`);
 
 export default function InfiniteGrid() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -217,6 +217,64 @@ export default function InfiniteGrid() {
   };
 
   const visibleTiles = getVisibleTiles();
+
+  const [autoScroll, setAutoScroll] = useState(false);
+  const inactivityTimer = useRef<NodeJS.Timeout | null>(null);
+  const autoScrollTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const resetInactivityTimer = () => {
+    // Nếu có timer đang chạy, clear nó
+    if (inactivityTimer.current) {
+      clearTimeout(inactivityTimer.current);
+    }
+
+    // Nếu đang auto-scroll thì dừng lại
+    if (autoScroll) {
+      setAutoScroll(false);
+      if (autoScrollTimer.current) clearInterval(autoScrollTimer.current);
+    }
+
+    // Đặt lại timer: nếu sau 2s không bấm phím → bật autoScroll
+    inactivityTimer.current = setTimeout(() => {
+      setAutoScroll(true);
+    }, 1000);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = () => {
+      resetInactivityTimer();
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoScroll]);
+
+
+  useEffect(() => {
+  if (!containerRef.current) return;
+
+  if (autoScroll) {
+    autoScrollTimer.current = setInterval(() => {
+      if (!containerRef.current) return;
+
+      containerRef.current.scrollTop += 0.5; // Tùy chỉnh tốc độ
+      containerRef.current.scrollLeft += 0.5;
+    }, 16); // 60fps ~ 16ms mỗi frame
+  } else {
+    if (autoScrollTimer.current) {
+      clearInterval(autoScrollTimer.current);
+    }
+  }
+
+  return () => {
+    if (autoScrollTimer.current) {
+      clearInterval(autoScrollTimer.current);
+    }
+  };
+}, [autoScroll]);
 
   return (
     <div 

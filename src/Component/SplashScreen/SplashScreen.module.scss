@@ -1,0 +1,37 @@
+// styles/SplashScreen.module.scss
+.splash {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: black;
+  color: white;
+  overflow: hidden;
+}
+
+.animatedText {
+  font-size: 3rem;
+  letter-spacing: 0.1em;
+  opacity: 0;
+  animation: fadeIn 2s ease-in-out forwards;
+}
+
+.animatedText span {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+

@@ -1,8 +1,20 @@
-// app/page.tsx
+// pages/index.tsx
 "use client";
+import InfiniteGrid from '@/Component/InfiniteGrid/InfiniteGrid';
+import SplashScreen from '@/Component/SplashScreen/SplashScreen';
+import { useState } from 'react';
 
-import InfiniteGrid from "@/Component/InfiniteGrid";
 
 export default function Home() {
-  return <InfiniteGrid />;
+  const [isLoading, setIsLoading] = useState(true);
+
+  return (
+    <>
+      {isLoading && <SplashScreen onFinish={() => setIsLoading(false)} />}
+
+      {!isLoading && (
+        <InfiniteGrid />
+      )}
+    </>
+  );
 }
